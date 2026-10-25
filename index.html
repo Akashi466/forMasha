@@ -72,24 +72,28 @@
         no.style.top = `${rect.top}px`;
         dodging = true;
       }
-      // Use the visible layout area and clamp against the button's actual size.
       const bounds = document.documentElement;
       const pad = 12;
       const maxX = Math.max(pad, bounds.clientWidth - no.offsetWidth - pad);
       const maxY = Math.max(pad, bounds.clientHeight - no.offsetHeight - pad);
+      const centerX = bounds.clientWidth / 2;
+      const centerY = bounds.clientHeight / 2;
+      const radius = 230;
       const currentX = parseFloat(no.style.left) || no.getBoundingClientRect().left;
       const currentY = parseFloat(no.style.top) || no.getBoundingClientRect().top;
       let x = currentX, y = currentY;
-      for (let i = 0; i < 12; i++) {
-        x = pad + Math.random() * Math.max(0, maxX - pad);
-        y = pad + Math.random() * Math.max(0, maxY - pad);
-        if (Math.hypot(x - currentX, y - currentY) >= 130) break;
+      for (let i = 0; i < 30; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 90 + Math.random() * (radius - 90);
+        const candidateX = centerX + Math.cos(angle) * distance - no.offsetWidth / 2;
+        const candidateY = centerY + Math.sin(angle) * distance - no.offsetHeight / 2;
+        x = Math.min(Math.max(pad, candidateX), maxX);
+        y = Math.min(Math.max(pad, candidateY), maxY);
+        if (Math.hypot(x - currentX, y - currentY) >= 100) break;
       }
-      // Keep it visible even if the viewport is smaller than the button.
-      no.style.left = `${Math.min(Math.max(pad, x), maxX)}px`;
-      no.style.top = `${Math.min(Math.max(pad, y), maxY)}px`;
-    }
-    no.addEventListener('pointerenter', moveNo);
+      no.style.left = `${x}px`;
+      no.style.top = `${y}px`;
+    }    no.addEventListener('pointerenter', moveNo);
     no.addEventListener('pointerdown', e => { e.preventDefault(); moveNo(); });
     window.addEventListener('resize', () => { if (dodging) moveNo(); });
     yes.addEventListener('click', () => {
@@ -116,4 +120,5 @@
   </script>
 </body>
 </html>
+
 
