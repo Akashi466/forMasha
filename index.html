@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff5f7">
+  <title>Самый важный вопрос 💌</title>
+  <style>
+    :root { color-scheme: light; --ink:#56243c; --pink:#ff789a; --hot:#ed4f7b; }
+    * { box-sizing:border-box }
+    body {
+      margin:0; min-height:100svh; overflow:hidden; display:grid; place-items:center;
+      font-family: ui-rounded, "Segoe UI", system-ui, sans-serif; color:var(--ink);
+      background: radial-gradient(ellipse at 50% 45%, #fff 0, #fff9fa 36%, #ffe9ef 100%);
+    }
+    .glow { position:fixed; width: min(78vw, 680px); aspect-ratio:1; border-radius:50%;
+      background:rgba(255,190,207,.20); filter:blur(75px); pointer-events:none; }
+    .card {
+      position:relative; z-index:1; width:min(90vw, 560px); padding:clamp(34px,7vw,62px) 26px 46px;
+      text-align:center; border:1px solid rgba(255,255,255,.9); border-radius:32px;
+      background:rgba(255,255,255,.75); box-shadow:0 24px 80px rgba(181,72,111,.14), inset 0 1px 0 white;
+      backdrop-filter:blur(14px); animation: arrive .8s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .badge { display:inline-grid; place-items:center; width:70px; height:70px; margin-bottom:20px;
+      border-radius:24px; background:#fff0f4; font-size:35px; box-shadow:0 8px 24px #f7c8d5; animation:pulse 2s ease-in-out infinite; }
+    h1 { margin:0; font-size:clamp(30px,7vw,48px); line-height:1.12; letter-spacing:-.045em; }
+    .subtitle { margin:16px 0 34px; color:#a06b80; font-size:16px; }
+    .buttons { display:flex; align-items:center; justify-content:center; gap:14px; min-height:58px; }
+    button { border:0; border-radius:999px; min-width:132px; padding:16px 28px; font:700 16px inherit; font-family:inherit; font-size:16px; font-weight:700; cursor:pointer; transition:transform .2s, box-shadow .2s; }
+    #yes { color:white; background:linear-gradient(135deg,#ff91aa,#ee4e7c); box-shadow:0 10px 25px rgba(238,78,124,.3); }
+    #yes:hover { transform:translateY(-3px) scale(1.04); box-shadow:0 14px 30px rgba(238,78,124,.38); }
+    #no { color:#9a6479; background:#fff0f4; box-shadow:0 7px 18px rgba(181,72,111,.10); }
+    #no.running { position:fixed; z-index:5; transition:left .22s ease, top .22s ease, transform .2s; }
+    .hint { margin:23px 0 0; color:#c494a6; font-size:12px; }
+    .heart { position:fixed; top:-12vh; z-index:0; pointer-events:none; opacity:0; animation:fall linear forwards; filter:drop-shadow(0 3px 4px rgba(214,78,119,.13)); }
+    .result { display:none; margin:26px auto 0; color:#db4770; font-size:20px; font-weight:700; animation:arrive .5s ease both; }
+    .result.show { display:block; }
+    .burst { position:fixed; z-index:8; pointer-events:none; animation:burst 1.3s ease-out forwards; }
+    @keyframes fall { 0%{transform:translate3d(0,-10vh,0) rotate(0);opacity:0} 10%{opacity:.7} 90%{opacity:.55} 100%{transform:translate3d(var(--drift),115vh,0) rotate(360deg);opacity:0} }
+    @keyframes pulse { 50%{transform:scale(1.08) rotate(-4deg)} }
+    @keyframes arrive { from{opacity:0;transform:translateY(16px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes burst { from{transform:translate(0,0) scale(.5);opacity:1} to{transform:translate(var(--x),var(--y)) scale(1.5);opacity:0} }
+    @media (max-width:420px) { .card{padding-inline:20px}.buttons{gap:10px}button{min-width:112px;padding:15px 22px} }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important} }
+  </style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <main class="card">
+    <div class="badge" aria-hidden="true">💌</div>
+    <h1>А ты будешь<br>моей женой?</h1>
+    <p class="subtitle">У меня для тебя один очень важный вопрос…</p>
+    <div class="buttons">
+      <button id="yes" type="button">Да! 💖</button>
+      <button id="no" type="button">Нет 🙈</button>
+    </div>
+    <p class="hint" id="hint">Выбирай сердцем ✨</p>
+    <p class="result" id="result" role="status">Ура! Я тебя очень люблю! 💍🥰</p>
+  </main>
+  <script>
+    const no = document.querySelector('#no');
+    const yes = document.querySelector('#yes');
+    const result = document.querySelector('#result');
+    const hint = document.querySelector('#hint');
+    let dodging = false;
+
+    function moveNo() {
+      if (!dodging) {
+        const rect = no.getBoundingClientRect();
+        no.classList.add('running');
+        no.style.left = rect.left + 'px';
+        no.style.top = rect.top + 'px';
+        dodging = true;
+      }
+      const pad = 18;
+      const maxX = Math.max(pad, innerWidth - no.offsetWidth - pad);
+      const maxY = Math.max(pad, innerHeight - no.offsetHeight - pad);
+      let x, y;
+      do { x = pad + Math.random() * (maxX - pad); y = pad + Math.random() * (maxY - pad); }
+      while (Math.hypot(x - parseFloat(no.style.left), y - parseFloat(no.style.top)) < 130 && innerWidth > 300);
+      no.style.left = `${x}px`; no.style.top = `${y}px`;
+    }
+    no.addEventListener('pointerenter', moveNo);
+    no.addEventListener('pointerdown', e => { e.preventDefault(); moveNo(); });
+    window.addEventListener('resize', () => { if (dodging) moveNo(); });
+    yes.addEventListener('click', () => {
+      result.classList.add('show'); hint.textContent = 'Это самый счастливый день!';
+      yes.textContent = 'Ура! 💍'; yes.disabled = true;
+      for (let i=0; i<34; i++) setTimeout(makeBurst, i*18);
+    });
+    function makeBurst() {
+      const el = document.createElement('span'); el.className='burst'; el.textContent=['💖','💕','💗','✨','💘'][Math.floor(Math.random()*5)];
+      el.style.left=(innerWidth*.5)+'px'; el.style.top=(innerHeight*.48)+'px';
+      el.style.setProperty('--x',`${(Math.random()-.5)*innerWidth*.9}px`); el.style.setProperty('--y',`${(Math.random()-.65)*innerHeight*.9}px`);
+      el.style.fontSize=(18+Math.random()*22)+'px'; document.body.append(el); setTimeout(()=>el.remove(),1400);
+    }
+    const hearts=['♡','♥','💕','💗','💖'];
+    function makeHeart() {
+      const el=document.createElement('span'); el.className='heart'; el.textContent=hearts[Math.floor(Math.random()*hearts.length)];
+      el.style.left=Math.random()*100+'vw'; el.style.fontSize=(14+Math.random()*20)+'px';
+      el.style.setProperty('--drift',`${(Math.random()-.5)*150}px`);
+      el.style.animationDuration=(7+Math.random()*8)+'s'; document.body.append(el);
+      setTimeout(()=>el.remove(),16000);
+    }
+    for(let i=0;i<18;i++) setTimeout(makeHeart,i*350);
+    setInterval(makeHeart,550);
+  </script>
+</body>
+</html>
