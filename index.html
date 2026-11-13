@@ -54,7 +54,10 @@
     }
 
     body.is-open .scene {
-      background: #07050c;
+      background:
+        radial-gradient(ellipse at 50% 74%, rgba(85, 42, 88, .18), transparent 54%),
+        radial-gradient(ellipse at 18% 42%, rgba(40, 77, 93, .1), transparent 42%),
+        #07050c;
     }
 
     body.is-open #sky { opacity: 1; }
@@ -125,7 +128,7 @@
       stroke: url(#cordColor);
       stroke-width: 2.05;
       stroke-linecap: round;
-      filter: url(#pencilLine) drop-shadow(0 0 3px rgba(236, 196, 177, .28));
+      filter: drop-shadow(0 0 2px rgba(236, 196, 177, .2));
     }
 
     .cord-highlight {
@@ -141,11 +144,13 @@
       transition: transform .18s ease-out, filter .35s ease;
     }
 
+    .pull-wrap.is-returning .tassel { transition: none; }
+    .pull-wrap.is-pulling .tassel { transition: none; }
+
     .tassel-head {
       fill: rgba(221, 177, 151, .25);
       stroke: rgba(242, 218, 203, .78);
       stroke-width: .85;
-      filter: url(#pencilLine);
     }
 
     .tassel-end {
@@ -153,7 +158,6 @@
       stroke: #d0aa96;
       stroke-width: 1.2;
       stroke-linecap: round;
-      filter: url(#pencilLine);
     }
 
     .pull-wrap:not(.is-pulling) .rope-button:hover .tassel {
@@ -240,7 +244,6 @@
       -webkit-text-stroke: .25px rgba(255, 236, 220, .56);
       paint-order: stroke fill;
       text-shadow: 1px 1px rgba(245, 202, 200, .34), -1px 0 rgba(194, 177, 203, .2), 0 0 32px rgba(255, 155, 184, .17);
-      filter: url(#pencilText);
       rotate: -1deg;
       opacity: 0;
       transform: translateY(22px);
@@ -265,7 +268,6 @@
       height: 0;
       margin: 28px auto 20px;
       background: repeating-linear-gradient(176deg, transparent 0 4px, rgba(255, 192, 196, .62) 5px 6px, transparent 7px 10px);
-      filter: url(#pencilLine);
       transition: height 1s ease 2s;
     }
 
@@ -275,7 +277,6 @@
       font-size: clamp(15px, 2.4vw, 20px);
       font-style: italic;
       letter-spacing: -.02em;
-      filter: url(#pencilText);
       opacity: 0;
       transform: translateY(10px);
     }
@@ -391,14 +392,6 @@
             <stop offset=".48" stop-color="#f0d4bd" />
             <stop offset="1" stop-color="#ad877b" stop-opacity=".75" />
           </linearGradient>
-          <filter id="pencilLine" x="-10%" y="-10%" width="120%" height="120%">
-            <feTurbulence type="fractalNoise" baseFrequency=".045 .07" numOctaves="2" seed="13" result="grain" />
-            <feDisplacementMap in="SourceGraphic" in2="grain" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-          <filter id="pencilText" x="-5%" y="-10%" width="110%" height="120%">
-            <feTurbulence type="fractalNoise" baseFrequency=".018 .04" numOctaves="1" seed="7" result="grain" />
-            <feDisplacementMap in="SourceGraphic" in2="grain" scale="1.6" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
         </defs>
         <path class="cord-shadow" id="cordShadow" d="M54 0 C54 39 52 69 54 117" />
         <path class="cord" id="cord" d="M54 0 C54 39 52 69 54 117" />
@@ -439,23 +432,24 @@
       let width = 0, height = 0, dpr = 1;
       let opened = false, downY = 0, pull = 0, pointerMoved = false;
       let clickSuppressedUntil = 0, startTime = performance.now();
+      let frameId = 0, returnFrameId = 0, lastFrame = performance.now();
       let stars = [], motes = [], confetti = [], hearts = [];
       const rand = (a, b) => a + Math.random() * (b - a);
 
       function resize() {
         width = window.innerWidth;
         height = window.innerHeight;
-        dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        dpr = Math.min(window.devicePixelRatio || 1, 1);
         canvas.width = Math.round(width * dpr);
         canvas.height = Math.round(height * dpr);
         canvas.style.width = width + 'px';
         canvas.style.height = height + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        stars = Array.from({ length: Math.min(210, Math.floor(width * height / 4600)) }, () => ({
+        stars = Array.from({ length: Math.min(120, Math.floor(width * height / 7800)) }, () => ({
           x: Math.random() * width, y: Math.random() * height,
           r: rand(.35, 1.45), p: rand(0, Math.PI * 2), s: rand(.3, 1.2)
         }));
-        motes = Array.from({ length: Math.min(52, Math.floor(width / 22)) }, () => ({
+        motes = Array.from({ length: Math.min(30, Math.floor(width / 38)) }, () => ({
           x: Math.random() * width, y: rand(height * .22, height * .94),
           r: rand(.5, 2), a: rand(.1, .45), s: rand(3, 16), p: rand(0, 7)
         }));
@@ -466,14 +460,8 @@
       function drawSketchAurora(t) {
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
-        const haze = ctx.createRadialGradient(width * (.5 + Math.sin(t * .1) * .18), height * .56, 0, width * .5, height * .56, width * .67);
-        haze.addColorStop(0, 'rgba(106, 65, 112, .1)');
-        haze.addColorStop(.55, 'rgba(55, 66, 96, .055)');
-        haze.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = haze; ctx.fillRect(0, 0, width, height);
-
         const colors = [[198, 231, 220], [213, 193, 231], [255, 194, 211], [192, 216, 239], [242, 213, 188]];
-        for (let band = 0; band < 5; band++) {
+        for (let band = 0; band < 3; band++) {
           const base = height * (.34 + band * .064);
           const phase = t * (.14 + band * .019) + band * 1.5;
           const amplitude = height * (.05 + (band % 2) * .025);
@@ -485,24 +473,24 @@
             + Math.sin(x * .005 + phase + wobble) * amplitude * .18 + wobble;
 
           ctx.beginPath();
-          for (let x = -18; x <= width + 18; x += 14) {
+          for (let x = -18; x <= width + 18; x += 22) {
             if (x === -18) ctx.moveTo(x, topY(x)); else ctx.lineTo(x, topY(x));
           }
-          for (let x = width + 18; x >= -18; x -= 14) ctx.lineTo(x, bottomY(x));
+          for (let x = width + 18; x >= -18; x -= 22) ctx.lineTo(x, bottomY(x));
           ctx.closePath();
           ctx.save();
           ctx.fillStyle = `rgba(${rgb.join(',')}, .022)`;
           ctx.fill(); ctx.clip();
           ctx.strokeStyle = `rgba(${rgb.join(',')}, .12)`;
           ctx.lineWidth = .65;
-          for (let x = -height; x < width + height; x += 25) {
+          for (let x = -height; x < width + height; x += 52) {
             ctx.beginPath(); ctx.moveTo(x, -10); ctx.lineTo(x + height * .45, height + 10); ctx.stroke();
           }
           ctx.restore();
 
           for (let pass = -1; pass <= 1; pass++) {
             ctx.beginPath();
-            for (let x = -18; x <= width + 18; x += 10) {
+            for (let x = -18; x <= width + 18; x += 18) {
               const y = topY(x, pass * 1.7 + Math.sin(x * .035 + t + band) * 1.3);
               if (x === -18) ctx.moveTo(x, y); else ctx.lineTo(x, y);
             }
@@ -511,7 +499,7 @@
             ctx.stroke();
             if (pass === 0) {
               ctx.beginPath();
-              for (let x = -18; x <= width + 18; x += 12) {
+              for (let x = -18; x <= width + 18; x += 20) {
                 const y = bottomY(x, Math.sin(x * .03 - t + band) * 1.6);
                 if (x === -18) ctx.moveTo(x, y); else ctx.lineTo(x, y);
               }
@@ -520,17 +508,17 @@
           }
         }
 
-        for (let i = 0; i < 13; i++) {
+        for (let i = 0; i < 7; i++) {
           const yBase = height * (.28 + i * .044);
           ctx.beginPath();
-          for (let x = -8; x <= width; x += 12) {
+          for (let x = -8; x <= width; x += 24) {
             const y = yBase + Math.sin(x * .0027 + t * .19 + i * .8) * height * .075
               + Math.cos(x * .007 - t * .16 + i) * height * .013 + Math.sin(x * .04 + i) * 1.7;
             if (x === -8) ctx.moveTo(x, y); else ctx.lineTo(x, y);
           }
           ctx.strokeStyle = i % 2 ? 'rgba(201, 224, 226, .075)' : 'rgba(255, 197, 211, .075)';
           ctx.lineWidth = i % 3 === 0 ? 1 : .65;
-          ctx.setLineDash(i % 3 === 0 ? [width * .08, 8, width * .055] : []);
+          ctx.setLineDash(i % 3 === 0 ? [width * .08, 9, width * .055] : []);
           ctx.stroke();
         }
         ctx.setLineDash([]);
@@ -574,9 +562,8 @@
         };
         pathHeart();
         ctx.fillStyle = 'rgba(255, 144, 180, .2)'; ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 158, 192, .85)'; ctx.lineWidth = .045;
-        ctx.shadowColor = 'rgba(255, 96, 156, .55)'; ctx.shadowBlur = 7; ctx.stroke();
-        ctx.shadowBlur = 0; ctx.globalAlpha *= .42;
+        ctx.strokeStyle = 'rgba(255, 158, 192, .85)'; ctx.lineWidth = .045; ctx.stroke();
+        ctx.globalAlpha *= .42;
         pathHeart(.07); ctx.strokeStyle = 'rgba(255, 205, 218, .7)'; ctx.lineWidth = .022; ctx.stroke();
         ctx.restore();
       }
@@ -587,7 +574,7 @@
           p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.spin * dt; p.life -= dt;
           const alpha = Math.min(1, p.life * 1.5);
           ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = alpha;
-          ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 4;
+          ctx.fillStyle = p.color;
           if (p.kind === 'heart') {
             ctx.restore(); drawHeart(p.x, p.y, p.size, alpha, p.rot);
           } else {
@@ -611,9 +598,14 @@
         }
       }
 
-      let lastFrame = performance.now();
       function frame(now) {
-        const dt = Math.min(.04, (now - lastFrame) / 1000);
+        frameId = 0;
+        if (!opened || document.hidden) return;
+        if (!reducedMotion && now - lastFrame < 1000 / 20) {
+          frameId = requestAnimationFrame(frame);
+          return;
+        }
+        const dt = Math.min(.07, (now - lastFrame) / 1000);
         lastFrame = now;
         const t = (now - startTime) / 1000;
         ctx.clearRect(0, 0, width, height);
@@ -622,14 +614,31 @@
           drawStars(t);
           drawCelebration(dt);
         }
-        requestAnimationFrame(frame);
+        if (!reducedMotion && opened && !document.hidden) frameId = requestAnimationFrame(frame);
       }
-      requestAnimationFrame(frame);
+
+      function startCanvas() {
+        if (!opened || document.hidden) return;
+        lastFrame = performance.now();
+        if (reducedMotion) frame(lastFrame);
+        else if (!frameId) frameId = requestAnimationFrame(frame);
+      }
+
+      function stopCanvas() {
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+        ctx.clearRect(0, 0, width, height);
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopCanvas();
+        else startCanvas();
+      });
 
       function makeBurst() {
         const cx = width * .5, cy = height * .5;
         const colors = ['#ff92b4', '#ffd5a1', '#bda8ff', '#8de2d4', '#fff0cf', '#fa78a5'];
-        const amount = reducedMotion ? 48 : Math.min(210, Math.max(110, Math.floor(width * height / 5200)));
+        const amount = reducedMotion ? 30 : Math.min(100, Math.max(64, Math.floor(width * height / 10500)));
         for (let i = 0; i < amount; i++) {
           const angle = Math.random() * Math.PI * 2;
           const speed = rand(75, Math.min(width, height) * .75);
@@ -638,10 +647,10 @@
             x: cx + rand(-12, 12), y: cy + rand(-12, 12), vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed - rand(15, 120), g: rand(28, 95), rot: rand(0, 6.3),
             spin: rand(-9, 9), w: rand(3, 8), h: rand(7, 17), size: rand(8, 18),
-            life: rand(3.4, 7.3), color: colors[Math.floor(Math.random() * colors.length)], kind: isHeart ? 'heart' : 'confetti'
+            life: rand(2.8, 5.2), color: colors[Math.floor(Math.random() * colors.length)], kind: isHeart ? 'heart' : 'confetti'
           });
         }
-        for (let i = 0; i < (reducedMotion ? 6 : 24); i++) {
+        for (let i = 0; i < (reducedMotion ? 4 : 14); i++) {
           hearts.push({ x: cx + rand(-width * .25, width * .25), y: cy + rand(-height * .1, height * .2),
             vx: rand(-27, 27), vy: rand(-52, -18), size: rand(5, 13), age: 0, life: rand(4.5, 8), phase: rand(0, 8) });
         }
@@ -649,7 +658,12 @@
 
       function openSurprise() {
         if (opened) return;
+        if (returnFrameId) cancelAnimationFrame(returnFrameId);
+        returnFrameId = 0;
+        wrap.classList.remove('is-returning');
         opened = true;
+        pull = 0;
+        updateCord(0);
         document.body.classList.add('is-open');
         message.setAttribute('aria-hidden', 'false');
         wrap.style.setProperty('--pull', '0px');
@@ -657,6 +671,7 @@
         wrap.style.transform = 'translateX(-50%) translateY(-28px)';
         wrap.style.pointerEvents = 'none';
         makeBurst();
+        startCanvas();
       }
 
       function updateCord(distance) {
@@ -668,8 +683,33 @@
         wrap.style.setProperty('--pull', distance + 'px');
       }
 
+      function returnCordToRest() {
+        if (returnFrameId) cancelAnimationFrame(returnFrameId);
+        const from = pull;
+        if (from <= 0) { updateCord(0); return; }
+        const began = performance.now();
+        wrap.classList.add('is-returning');
+        function easeBack(now) {
+          const progress = Math.min(1, (now - began) / 340);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          pull = from * (1 - eased);
+          updateCord(pull);
+          if (progress < 1) returnFrameId = requestAnimationFrame(easeBack);
+          else {
+            pull = 0;
+            updateCord(0);
+            returnFrameId = 0;
+            wrap.classList.remove('is-returning');
+          }
+        }
+        returnFrameId = requestAnimationFrame(easeBack);
+      }
+
       rope.addEventListener('pointerdown', (event) => {
         if (opened) return;
+        if (returnFrameId) cancelAnimationFrame(returnFrameId);
+        returnFrameId = 0;
+        wrap.classList.remove('is-returning');
         downY = event.clientY; pull = 0; pointerMoved = false;
         wrap.classList.add('is-pulling');
         rope.setPointerCapture(event.pointerId);
@@ -691,7 +731,7 @@
         wrap.classList.remove('is-pulling');
         clickSuppressedUntil = pointerMoved ? performance.now() + 500 : 0;
         if (!opened && pull >= 48) openSurprise();
-        if (!opened) { pull = 0; updateCord(0); }
+        if (!opened) returnCordToRest();
       }
       rope.addEventListener('pointerup', releaseRope);
       rope.addEventListener('pointercancel', releaseRope);
@@ -705,11 +745,17 @@
       });
 
       replay.addEventListener('click', () => {
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+        if (returnFrameId) cancelAnimationFrame(returnFrameId);
+        returnFrameId = 0;
         opened = false; confetti = []; hearts = [];
+        wrap.classList.remove('is-returning');
         document.body.classList.remove('is-open');
         message.setAttribute('aria-hidden', 'true');
         wrap.style.opacity = ''; wrap.style.transform = ''; wrap.style.pointerEvents = '';
         pull = 0; updateCord(0);
+        ctx.clearRect(0, 0, width, height);
       });
     })();
   </script>
